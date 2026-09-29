@@ -28,11 +28,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout_after_attendan
         exit;
     }
 
-    if ($_SESSION['role'] !== 'User') {
-        header("Location: dashboard.php");
-        exit;
-    }
-
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         header("Location: pilih_kehadiran.php");
         exit;
@@ -111,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout_after_attendan
         exit;
         }
 
-        if ($attendance_type !== 'Sick' && $attendance_type !== 'Permission/Leave') {
+        if ($attendance_type !== 'Sick' && $attendance_type !== 'Permission' && $attendance_type !== 'Leave') {
             header("Location: pilih_kehadiran.php");
             exit;
         }
@@ -160,9 +155,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout_after_attendan
 
         $allowed_mimes = [
             'image/jpeg' => 'jpg',
-            'image/png' => 'png',
-            'application/pdf' => 'pdf'
+            'image/png' => 'png'
         ];
+
+        if ($attendance_type === 'Sick' || $attendance_type === 'Leave') {
+            $allowed_mimes['application/pdf'] = 'pdf';
+        }
 
         if (!array_key_exists($mime_type, $allowed_mimes)) {
             header("Location: pilih_kehadiran.php?error=invalid_file");
@@ -227,7 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout_after_attendan
         $check_time_result = mysqli_query($koneksi, $check_time_query);
 
         if ($check_time_result && mysqli_num_rows($check_time_result) > 0) {
-    $absence_status = $absence_type === 'Sick' ? 'Sick' : 'Permission/Leave';
+    $absence_status = $absence_type;
 
     $update_time_query = "
         UPDATE time
@@ -248,7 +246,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout_after_attendan
     ";
             mysqli_query($koneksi, $update_time_query);
         } else {
-    $absence_status = $absence_type === 'Sick' ? 'Sick' : 'Permission/Leave';
+    $absence_status = $absence_type;
 
     $insert_time_query = "
         INSERT INTO time (
@@ -290,9 +288,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout_after_attendan
 
     $_SESSION['attendance_alert'] = [
         'icon' => 'success',
-        'title' => $absence_type === 'Sick'
-            ? 'Sick submission successful!'
-            : 'Permission/Leave submission successful!',
+        'title' => $absence_type . ' submission successful!',
         'text' => 'Your submission has been recorded successfully.',
         'redirect' => $index_url,
         'logout_after_alert' => true

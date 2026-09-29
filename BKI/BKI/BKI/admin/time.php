@@ -23,13 +23,18 @@
 
     include("koneksi.php");
 
-    $selected_month = date('m'); 
-    $selected_year  = date('Y');
+    $selected_month = (int)date('m');
+    $selected_year = (int)date('Y');
 
     if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['search'])) {
-        $selected_month = htmlspecialchars($_GET['month']);
-        $selected_year  = htmlspecialchars($_GET['year']);
+        $selected_month = (int)($_GET['month'] ?? date('m'));
+        $selected_year = (int)($_GET['year'] ?? date('Y'));
     }
+
+    $period_start = sprintf('%04d-%02d-15', $selected_year, $selected_month);
+    $period_end = date('Y-m-d', strtotime($period_start . ' +1 month'));
+    $period_start_display = date('d M Y', strtotime($period_start));
+    $period_end_display = date('d M Y', strtotime($period_end));
 
     $query = "
         SELECT p.id, p.tanggal, p.time_login, p.geotagging, p.before_break, p.geotagging_before_break, p.after_break, p.geotagging_after_break, p.time_logout, p.geotagging_logout,
@@ -39,8 +44,8 @@
         JOIN users u ON p.user_id = u.id
         LEFT JOIN time_off t ON p.time_off_id = t.id
         WHERE u.status = 'active'
-        AND MONTH(p.tanggal) = '$selected_month'
-        AND YEAR(p.tanggal) = '$selected_year'
+        AND p.tanggal >= '$period_start'
+        AND p.tanggal <= '$period_end'
     ";
 
     if (is_user()) {
@@ -138,71 +143,6 @@
             object-position: center !important;
             border-radius: 50% !important;
         }
-        .pagination {
-            margin-bottom: 20px;
-            gap: 4px;
-        }
-        .pagination .page-item .page-link {
-            border-radius: 6px;
-            min-width: 34px;
-            height: 34px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 10px;
-            font-size: 14px;
-            border: none;
-        }
-        .pagination .page-item.active .page-link {
-            background: #003285;
-            color: #fff;
-        }
-        .pagination .page-item:not(.active):not(.disabled) .page-link:hover {
-            background: #eef3f9;
-            color: #003285;
-        }
-        .pagination .page-item.disabled .page-link {
-            background: transparent;
-            color: #999;
-            cursor: default;
-        }
-        .pagination-container {
-            display: flex;
-            align-items: center;
-        }
-        @media (max-width: 767.98px) {
-        
-            /* Area info + pagination */
-            .card > .d-flex.justify-content-between.align-items-center.mt-2 {
-                flex-direction: column !important;
-                align-items: stretch !important;
-                gap: 15px;
-                padding: 15px 15px 20px !important;
-            }
-            
-            /* Info "Showing 1 to..." */
-            #table-info {
-                text-align: left !important;
-                width: 100%;
-            }
-        
-            /* Pagination */
-            .pagination-container {
-                width: 100%;
-                justify-content: center;
-            }
-        
-            .pagination {
-                justify-content: center;
-                flex-wrap: nowrap;
-                margin-bottom: 0;
-            }
-        
-            /* Jarak card dengan footer di mobile */
-            .app-content {
-                padding-bottom: 80px !important;
-            }
-        }
     </style>
 
 </head>
@@ -293,10 +233,28 @@
                                 <div class="me-2">
                                     <label for="month" class="form-label d-none">Month</label>
                                     <select id="month" name="month" class="form-select">
-                                        <?php for ($m = 1; $m <= 12; $m++): ?>
-                                            <option value="<?php echo str_pad($m, 2, '0', STR_PAD_LEFT); ?>" <?php echo str_pad($m, 2, '0', STR_PAD_LEFT) == $selected_month ? 'selected' : ''; ?>>
-                                                <?php echo date('F', mktime(0, 0, 0, $m, 1)); ?>
-                                            </option>
+                                        <?php
+                                        $monthNames = [
+                                            1 => 'January',
+                                            2 => 'February',
+                                            3 => 'March',
+                                            4 => 'April',
+                                            5 => 'May',
+                                            6 => 'June',
+                                            7 => 'July',
+                                            8 => 'August',
+                                            9 => 'September',
+                                            10 => 'October',
+                                            11 => 'November',
+                                            12 => 'December'
+                                        ];
+                                        for ($m = 1; $m <= 12; $m++):
+                                            $start = sprintf('%04d-%02d-15', $selected_year, $m);
+                                            $end = date('Y-m-d', strtotime($start . ' +1 month'));
+                                            $startLabel = date('d M', strtotime($start));
+                                            $endLabel = date('d M', strtotime($end));
+                                        ?>
+                                            <option value="<?php echo $m; ?>" <?php echo $m == $selected_month ? 'selected' : ''; ?>><?php echo $monthNames[$m] . ' (' . $startLabel . ' - ' . $endLabel . ')'; ?></option>
                                         <?php endfor; ?>
                                     </select>
                                 </div>
@@ -330,7 +288,7 @@
                                     <div class="d-flex gap-2">
                                         <a href="export_time.php?type=monthly&month=<?php echo urlencode($selected_month); ?>&year=<?php echo urlencode($selected_year); ?>" class="btn btn-outline-secondary"><i data-feather="download"></i> Monthly Export</a>
                                         <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#periodExportModal"><i data-feather="download"></i> Period Export</button>
-                                        <a href="export_time.php?type=all" class="btn btn-outline-secondary"><i data-feather="download"></i> Export All</a>
+                                        <a href="export_time.php?type=all&year=<?php echo urlencode($selected_year); ?>" class="btn btn-outline-secondary"><i data-feather="download"></i> Export All</a>
                                     </div>
                                 </div>
                             </div>
@@ -644,187 +602,22 @@
 
             function updatePagination(totalPages) {
                 paginationContainer.innerHTML = '';
-            
-                if (totalPages <= 1) {
-                    return;
-                }
-            
-                function createPage(page, text = page, disabled = false, active = false) {
+
+                for (let i = 1; i <= totalPages; i++) {
                     const li = document.createElement('li');
-            
-                    li.className = 'page-item';
-            
-                    if (disabled) {
-                        li.classList.add('disabled');
-                    }
-            
-                    if (active) {
-                        li.classList.add('active');
-                    }
-            
+                    li.className = 'page-item' + (i === currentPage ? ' active' : '');
                     const a = document.createElement('a');
                     a.className = 'page-link';
                     a.href = '#';
-                    a.textContent = text;
-            
-                    if (!disabled) {
-                        a.addEventListener('click', function(e) {
-                            e.preventDefault();
-            
-                            if (page < 1 || page > totalPages) {
-                                return;
-                            }
-            
-                            currentPage = page;
-                            updateTable();
-                        });
-                    }
-            
+                    a.textContent = i;
+                    a.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        currentPage = i;
+                        updateTable();
+                    });
                     li.appendChild(a);
                     paginationContainer.appendChild(li);
                 }
-            
-                // Previous
-                createPage(
-                    currentPage - 1,
-                    '',
-                    currentPage === 1
-                );
-            
-                // Kalau halaman sedikit, tampilkan semuanya
-                if (totalPages <= 7) {
-            
-                    for (let i = 1; i <= totalPages; i++) {
-                        createPage(
-                            i,
-                            i,
-                            false,
-                            i === currentPage
-                        );
-                    }
-            
-                } else {
-            
-                    // Halaman pertama
-                    createPage(
-                        1,
-                        1,
-                        false,
-                        currentPage === 1
-                    );
-            
-                    // Kondisi awal
-                    if (currentPage <= 4) {
-            
-                        createPage(2, 2, false, currentPage === 2);
-                        createPage(3, 3, false, currentPage === 3);
-                        createPage(4, 4, false, currentPage === 4);
-            
-                        // ...
-                        const dots = document.createElement('li');
-                        dots.className = 'page-item disabled';
-                        dots.innerHTML = '<span class="page-link">...</span>';
-                        paginationContainer.appendChild(dots);
-            
-                        // Halaman terakhir
-                        createPage(
-                            totalPages,
-                            totalPages,
-                            false,
-                            currentPage === totalPages
-                        );
-            
-                    }
-            
-                    // Kondisi tengah
-                    else if (currentPage >= 5 && currentPage <= totalPages - 4) {
-            
-                        // ...
-                        const dotsStart = document.createElement('li');
-                        dotsStart.className = 'page-item disabled';
-                        dotsStart.innerHTML = '<span class="page-link">...</span>';
-                        paginationContainer.appendChild(dotsStart);
-            
-                        createPage(
-                            currentPage - 1,
-                            currentPage - 1,
-                            false,
-                            false
-                        );
-            
-                        createPage(
-                            currentPage,
-                            currentPage,
-                            false,
-                            true
-                        );
-            
-                        createPage(
-                            currentPage + 1,
-                            currentPage + 1,
-                            false,
-                            false
-                        );
-            
-                        // ...
-                        const dotsEnd = document.createElement('li');
-                        dotsEnd.className = 'page-item disabled';
-                        dotsEnd.innerHTML = '<span class="page-link">...</span>';
-                        paginationContainer.appendChild(dotsEnd);
-            
-                        createPage(
-                            totalPages,
-                            totalPages,
-                            false,
-                            currentPage === totalPages
-                        );
-            
-                    }
-            
-                    // Kondisi akhir
-                    else {
-            
-                        const dots = document.createElement('li');
-                        dots.className = 'page-item disabled';
-                        dots.innerHTML = '<span class="page-link">...</span>';
-                        paginationContainer.appendChild(dots);
-            
-                        createPage(
-                            totalPages - 3,
-                            totalPages - 3,
-                            false,
-                            currentPage === totalPages - 3
-                        );
-            
-                        createPage(
-                            totalPages - 2,
-                            totalPages - 2,
-                            false,
-                            currentPage === totalPages - 2
-                        );
-            
-                        createPage(
-                            totalPages - 1,
-                            totalPages - 1,
-                            false,
-                            currentPage === totalPages - 1
-                        );
-            
-                        createPage(
-                            totalPages,
-                            totalPages,
-                            false,
-                            currentPage === totalPages
-                        );
-                    }
-                }
-            
-                // Next
-                createPage(
-                    currentPage + 1,
-                    '›',
-                    currentPage === totalPages
-                );
             }
 
             entriesSelect.addEventListener('change', function() {

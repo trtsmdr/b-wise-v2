@@ -233,6 +233,42 @@
                                             </div>
                                             <div class="col-6">
                                                 <div class="mb-1">
+                                                    <label for="basic_salary" class="form-label">Basic Salary</label>
+                                                    <input type="text" class="form-control money-input" id="basic_salary" name="basic_salary" placeholder="Basic Salary" value="0" inputmode="numeric" required />
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="mb-1">
+                                                    <label for="meal_allowance" class="form-label">Meal Allowance</label>
+                                                    <input type="text" class="form-control money-input" id="meal_allowance" name="meal_allowance" placeholder="Meal Allowance" value="0" inputmode="numeric" required />
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="mb-1">
+                                                    <label for="transport_allowance" class="form-label">Transport Allowance</label>
+                                                   <input type="text" class="form-control money-input" id="transport_allowance" name="transport_allowance" placeholder="Transport Allowance" value="0" inputmode="numeric" required />
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="mb-1">
+                                                    <label for="welfare_allowance" class="form-label">Welfare Allowance</label>
+                                                    <input type="text" class="form-control money-input" id="welfare_allowance" name="welfare_allowance" placeholder="Welfare Allowance" value="0" inputmode="numeric" required />
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="mb-1">
+                                                    <label for="other_allowance" class="form-label">Other Allowance</label>
+                                                   <input type="text" class="form-control money-input" id="other_allowance" name="other_allowance" placeholder="Other Allowance" value="0" inputmode="numeric" required />
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="mb-1">
+                                                    <label for="extra_fooding" class="form-label">Extra Fooding</label>
+                                                   <input type="text" class="form-control money-input" id="extra_fooding" name="extra_fooding" placeholder="Extra Fooding" value="0" inputmode="numeric" required />
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="mb-1">
                                                     <label for="username" class="form-label">Username</label>
                                                     <input type="text" class="form-control" id="username" name="username" placeholder="Username" required />
                                                 </div>
@@ -394,6 +430,21 @@
         }
 
         setInterval(checkTime, 1000);
+
+        document.querySelectorAll('.money-input').forEach(function(input) {
+            input.addEventListener('focus', function() {
+                if (this.value === '0' || this.value === '0,00' || this.value === '0.00') this.value = '';
+            });
+
+            input.addEventListener('input', function() {
+                let value = this.value.replace(/[^\d]/g, '');
+                this.value = value ? Number(value).toLocaleString('id-ID') : '';
+            });
+
+            input.addEventListener('blur', function() {
+                if (!this.value) this.value = '0';
+            });
+        });
     </script>
 
 </body>

@@ -1,5 +1,8 @@
 <?php
     session_start();
+    $upload_error = $_SESSION['upload_error'] ?? null;
+    unset($_SESSION['upload_error']);
+    
     if (!isset($_SESSION['username'])) {
         header("location: Halaman_login.php");
         exit;
@@ -35,6 +38,16 @@
     $result = mysqli_query($koneksi, $query);
     $row    = mysqli_fetch_assoc($result);
 
+    function upload_error($title, $message) {
+        $_SESSION['upload_error'] = [
+            'title' => $title,
+            'message' => $message
+        ];
+
+        header('Location: ' . $_SERVER['PHP_SELF'] . '?id=' . urlencode($_GET['id'] ?? ''));
+        exit;
+    }
+
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $tanggal = htmlspecialchars($_POST['tanggal']);
         $user_id = htmlspecialchars($_POST['user_id']);
@@ -43,105 +56,161 @@
 
         $uploaded_files = [];
         $upload_dir = 'img/';
+        $max_file_size = 5 * 1024 * 1024;
+        $allowed_mime_types = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
 
-        // foreach ($_FILES['gambar']['name'] as $key => $name) {
-        //     $tmp_name = $_FILES['gambar']['tmp_name'][$key];
-            
-        //     if (!empty($tmp_name)) {
-        //         $file_name = time() . '_' . basename($name);
-        //         $target_file = $upload_dir . $file_name;
-            
-        //         $check = getimagesize($tmp_name);
-        //         if ($check !== false) {
-        //             if (move_uploaded_file($tmp_name, $target_file)) {
-        //                 $uploaded_files[] = $file_name;
-        //             } else {
-        //                 echo "<script>alert('File upload failed for " . htmlspecialchars($name) . "');</script>";
-        //             }
-        //         } else {
-        //             echo "<script>alert('File " . htmlspecialchars($name) . " is not an image');</script>";
-        //         }
-        //     }
-        // }
-        
-        foreach ($_FILES['gambar']['name'] as $key => $name) {
-            $tmp_name = $_FILES['gambar']['tmp_name'][$key];
-            $file_size = $_FILES['gambar']['size'][$key];
-            $file_error = $_FILES['gambar']['error'][$key];
-        
-            if (!empty($tmp_name) && $file_error === UPLOAD_ERR_OK) {
-        
-                // Maksimal 2 MB per file
-                if ($file_size > 2 * 1024 * 1024) {
-                    echo "<script>
-                        alert('File " . htmlspecialchars($name) . " melebihi ukuran maksimal 2 MB.');
-                    </script>";
+        if (isset($_FILES['gambar']) && isset($_FILES['gambar']['name']) && is_array($_FILES['gambar']['name'])) {
+            $file_count = count($_FILES['gambar']['name']);
+
+            for ($key = 0; $key < $file_count; $key++) {
+                if ($_FILES['gambar']['error'][$key] === UPLOAD_ERR_NO_FILE) {
                     continue;
                 }
-        
-                // Cek MIME type file
+
+                $original_name = $_FILES['gambar']['name'][$key];
+
+                if ($_FILES['gambar']['error'][$key] !== UPLOAD_ERR_OK) {
+                    upload_error('Upload failed!', 'Failed to upload file ' . htmlspecialchars($original_name) . '.');
+                }
+
+                $tmp_name = $_FILES['gambar']['tmp_name'][$key];
+                $file_size = (int) $_FILES['gambar']['size'][$key];
+                $original_extension = strtolower(pathinfo($original_name, PATHINFO_EXTENSION));
+
+                if ($file_size > $max_file_size) {
+                    upload_error('File too large!', 'File ' . htmlspecialchars($original_name) . ' exceeds the maximum file size of 5 MB.');
+                }
+
                 $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                $mime = finfo_file($finfo, $tmp_name);
+                $mime_type = finfo_file($finfo, $tmp_name);
                 finfo_close($finfo);
-        
-                // Format yang diperbolehkan
-                $allowed_types = [
-                    'image/jpeg',
-                    'image/png'
-                ];
-        
-                if (!in_array($mime, $allowed_types)) {
-                    echo "<script>
-                        alert('File " . htmlspecialchars($name) . " tidak didukung. Gunakan PNG, JPG, atau JPEG.');
-                    </script>";
-                    continue;
-                }
-        
-                // Pastikan file benar-benar gambar
-                $check = getimagesize($tmp_name);
-        
-                if ($check === false) {
-                    echo "<script>
-                        alert('File " . htmlspecialchars($name) . " bukan gambar yang valid.');
-                    </script>";
-                    continue;
-                }
-        
-                // Ambil ekstensi file
-                $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-        
-                // Buat nama file baru
-                $file_name = time() . '_' . $key . '.' . $extension;
-                $target_file = $upload_dir . $file_name;
-        
-                if (move_uploaded_file($tmp_name, $target_file)) {
-                    $uploaded_files[] = $file_name;
+
+                $is_heic = in_array($original_extension, ['heic', 'heif'], true) || in_array($mime_type, ['image/heic', 'image/heif'], true);
+
+                if ($is_heic) {
+                    if (!extension_loaded('imagick')) {
+                        upload_error('Upload failed!', 'HEIC and HEIF support is not available.');
+                    }
+
+                    try {
+                        $imagick_class = 'Imagick';
+                        $validator = new $imagick_class();
+                        $validator->readImage($tmp_name);
+                        $validator->setIteratorIndex(0);
+                        $validator->clear();
+                        $validator->destroy();
+                    } catch (Throwable $e) {
+                        upload_error('Invalid image!', 'File ' . htmlspecialchars($original_name) . ' is not a valid image.');
+                    }
+
+                    $final_extension = 'jpg';
                 } else {
-                    echo "<script>
-                        alert('Gagal mengupload file " . htmlspecialchars($name) . "');
-                    </script>";
+                    if (!in_array($mime_type, $allowed_mime_types, true)) {
+                        upload_error('Invalid file!', 'File ' . htmlspecialchars($original_name) . ' is not supported. Use PNG, JPG, JPEG, HEIC, or HEIF.');
+                    }
+
+                    if (@getimagesize($tmp_name) === false) {
+                        upload_error('Invalid image!', 'File ' . htmlspecialchars($original_name) . ' is not a valid image.');
+                    }
+
+                    if ($mime_type === 'image/png') {
+                        $final_extension = 'png';
+                    } elseif ($original_extension === 'jpeg') {
+                        $final_extension = 'jpeg';
+                    } else {
+                        $final_extension = 'jpg';
+                    }
                 }
+
+                $file_name = date('YmdHis') . '_' . uniqid() . '.' . $final_extension;
+                $target_file = $upload_dir . $file_name;
+
+                if ($is_heic) {
+                    try {
+                        $image = new Imagick();
+                        $image->readImage($tmp_name);
+                        $image->setIteratorIndex(0);
+                        $image->setImageFormat('jpg');
+                        $image->setImageCompressionQuality(90);
+                        $image->stripImage();
+
+                        if (!$image->writeImage($target_file)) {
+                            $image->clear();
+                            $image->destroy();
+                            upload_error('Upload failed!', 'File ' . htmlspecialchars($original_name) . ' could not be saved. Please try again.');
+                        }
+
+                        $image->clear();
+                        $image->destroy();
+                    } catch (Throwable $e) {
+                        if (file_exists($target_file)) {
+                            unlink($target_file);
+                        }
+
+                        upload_error('Upload failed!', 'File ' . htmlspecialchars($original_name) . ' could not be saved. Please try again.');
+                    }
+                } else {
+                    if (!move_uploaded_file($tmp_name, $target_file)) {
+                        foreach ($uploaded_files as $uploaded_file) {
+                            $uploaded_path = $upload_dir . $uploaded_file;
+
+                            if (file_exists($uploaded_path)) {
+                                unlink($uploaded_path);
+                            }
+                        }
+
+                        upload_error('Upload failed!', 'File ' . htmlspecialchars($original_name) . ' could not be saved. Please try again.');
+                    }
+                }
+
+                if (!file_exists($target_file) || filesize($target_file) > $max_file_size) {
+                    if (file_exists($target_file)) {
+                        unlink($target_file);
+                    }
+
+                    upload_error('Upload failed!', 'File ' . htmlspecialchars($original_name) . ' exceeds the maximum file size of 5 MB.');
+                }
+
+                $uploaded_files[] = $file_name;
             }
         }
 
         $existing_files = array_filter(explode(',', $row['gambar']));
         $existing_files = array_map('trim', $existing_files);
-        
-        $images_to_delete = array_map('trim', explode(',', $_POST['images_to_delete']));
+
+        $images_to_delete = !empty($_POST['images_to_delete']) ? array_map('trim', explode(',', $_POST['images_to_delete'])) : [];
+        $images_to_delete = array_filter($images_to_delete);
+
         $remaining_images = array_diff($existing_files, $images_to_delete);
-        
+
         $gambar = implode(',', array_merge($remaining_images, $uploaded_files));
-        
-        $status = empty($gambar) ? 'On-progress' : 'Completed';
-        
+
+        if (empty($gambar)) {
+            echo "<script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Proof of Activity Required!',
+                        text: 'Please upload at least one image before saving.',
+                        confirmButtonText: 'OK',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false
+                    });
+                });
+            </script>";
+            exit;
+        }
+
+        $status = 'Completed';
+
         $data = [
-            'id'        => $id,
-            'gambar'    => $gambar,
-            'tanggal'   => $tanggal,
-            'user_id'   => $user_id,
+            'id' => $id,
+            'gambar' => $gambar,
+            'tanggal' => $tanggal,
+            'user_id' => $user_id,
             'deskripsi' => $deskripsi,
             'time_upload_avident' => $time_upload_avident,
-            'status'    => $status
+            'status' => $status
         ];
         
         if (update_planning($data) > 0) {
@@ -285,6 +354,12 @@
             object-position: center !important;
             border-radius: 50% !important;
         }
+        .note-danger {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 6px;
+            display: block;
+        }
     </style>
 </head>
 
@@ -405,18 +480,8 @@
                                                 <div class="col-6">
                                                     <div class="mb-1">
                                                         <label for="gambar" class="form-label">Proof of Activity</label>
-                                                        <!--<input type="file" class="form-control" id="gambar" name="gambar[]" multiple />-->
-                                                        <input type="file"
-                                                           class="form-control"
-                                                           id="gambar"
-                                                           name="gambar[]"
-                                                           multiple
-                                                           accept=".png,.jpg,.jpeg,image/png,image/jpeg">
-                                                    
-                                                        <small class="text-muted">
-                                                            Maximum file size of 2 MB per file. Supported formats: PNG, JPG, and JPEG.
-                                                        </small>
-                                                        
+                                                        <input type="file" class="form-control" id="gambar" name="gambar[]" accept=".jpg,.jpeg,.png,.heic,.heif,image/jpeg,image/png,image/heic,image/heif" multiple />
+                                                        <small class="text-muted">Maximum file size of 5 MB per file. Supported formats: PNG, JPG, JPEG, HEIC, and HEIF.</small>
                                                         <div id="image-preview" class="mt-2">
                                                             <?php
                                                             $existing_images = explode(',', $row['gambar']);
@@ -477,6 +542,21 @@
     <!-- END: Theme JS -->
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <?php if ($upload_error): ?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        Swal.fire({
+            icon: 'error',
+            title: <?= json_encode($upload_error['title']) ?>,
+            text: <?= json_encode($upload_error['message']) ?>,
+            confirmButtonText: 'OK',
+            allowOutsideClick: false,
+            allowEscapeKey: false
+        });
+    });
+    </script>
+    <?php endif; ?>
 
     <script>
         $(window).on('load', function() {
@@ -488,122 +568,159 @@
             }
         })
 
-        document.getElementById('avidentForm').addEventListener('submit', function() {
-            var now   = new Date();
-            var hours = now.getHours().toString().padStart(2, '0');
-            var minutes = now.getMinutes().toString().padStart(2, '0');
-            var seconds = now.getSeconds().toString().padStart(2, '0');
-            var timeStamp = now.toISOString().split('T')[0] + ' ' + hours + ':' + minutes + ':' + seconds;
-            document.getElementById('time_upload_avident').value = timeStamp;
-        });
-
         document.addEventListener('DOMContentLoaded', function() {
-            const imageToDeleteField = document.getElementById('images_to_delete');
-
-        document.getElementById('gambar').addEventListener('change', function(event) {
-            const input = event.target;
+            const form = document.getElementById('avidentForm');
+            const fileInput = document.getElementById('gambar');
             const previewContainer = document.getElementById('image-preview');
-        
-            const maxSize = 2 * 1024 * 1024; // 2 MB
-            const allowedTypes = ['image/jpeg', 'image/png'];
-        
-            let validFiles = [];
-            let rejectedFiles = [];
-        
-            Array.from(input.files).forEach(file => {
-        
-                // Cek ukuran file
-                if (file.size > maxSize) {
-                    rejectedFiles.push(
-                        file.name + ' (lebih dari 2 MB)'
-                    );
-                    return;
-                }
-        
-                // Cek format file
-                if (!allowedTypes.includes(file.type)) {
-                    rejectedFiles.push(
-                        file.name + ' (format tidak didukung)'
-                    );
-                    return;
-                }
-        
-                validFiles.push(file);
-            });
-        
-            // Jika ada file yang ditolak
-            if (rejectedFiles.length > 0) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'File tidak dapat diupload',
-                    html: rejectedFiles.join('<br>'),
-                    confirmButtonText: 'OK'
+            const imageToDeleteField = document.getElementById('images_to_delete');
+            const timeUploadField = document.getElementById('time_upload_avident');
+
+            let selectedFiles = [];
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
+
+            function updateFileInput() {
+                const dataTransfer = new DataTransfer();
+
+                selectedFiles.forEach(function(file) {
+                    dataTransfer.items.add(file);
+                });
+
+                fileInput.files = dataTransfer.files;
+            }
+
+            function renderNewImages() {
+                previewContainer.querySelectorAll('.preview-image').forEach(function(element) {
+                    element.remove();
+                });
+
+                selectedFiles.forEach(function(file, index) {
+                    const reader = new FileReader();
+
+                    reader.onload = function(e) {
+                        const previewImage = document.createElement('div');
+                        previewImage.className = 'preview-image';
+                        previewImage.dataset.index = index;
+                        previewImage.innerHTML = `
+                            <img src="${e.target.result}" />
+                            <button type="button" class="btn btn-danger btn-sm delete-preview-image">X</button>
+                        `;
+
+                        previewContainer.appendChild(previewImage);
+
+                        previewImage.querySelector('.delete-preview-image').addEventListener('click', function() {
+                            selectedFiles.splice(index, 1);
+                            updateFileInput();
+                            renderNewImages();
+                        });
+                    };
+
+                    reader.readAsDataURL(file);
                 });
             }
-        
-            // Set hanya file yang valid
-            input.files = new FileListItems(validFiles);
-        
-            // Preview hanya file valid
-            validFiles.forEach(file => {
-                const reader = new FileReader();
-        
-                reader.onload = function(e) {
-                    const previewImage = document.createElement('div');
-                    previewImage.className = 'preview-image';
-        
-                    previewImage.innerHTML = `
-                        <img src="${e.target.result}" />
-                        <button type="button"
-                                class="btn btn-danger btn-sm delete-preview-image">
-                            X
-                        </button>
-                    `;
-        
-                    previewContainer.appendChild(previewImage);
-        
-                    previewImage
-                        .querySelector('.delete-preview-image')
-                        .addEventListener('click', function() {
-        
-                            const currentFiles = Array.from(input.files);
-        
-                            const index = Array.from(
-                                previewContainer.querySelectorAll('.preview-image')
-                            ).indexOf(previewImage);
-        
-                            currentFiles.splice(index, 1);
-        
-                            input.files = new FileListItems(currentFiles);
-        
-                            previewImage.remove();
+
+            fileInput.addEventListener('change', function() {
+                const newFiles = Array.from(this.files);
+                for (const file of newFiles) {
+                    const extension = file.name.split('.').pop().toLowerCase();
+                    const allowedExtensions = ['jpg', 'jpeg', 'png', 'heic', 'heif'];
+                    const maxFileSize = 5 * 1024 * 1024;
+
+                    if (!allowedExtensions.includes(extension)) {
+                        this.value = '';
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Invalid file!',
+                            text: 'Only JPG, JPEG, PNG, HEIC, and HEIF images are allowed.',
+                            confirmButtonText: 'OK',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false
                         });
-                };
-        
-                reader.readAsDataURL(file);
-            });
-        });
 
-        function FileListItems(files) {
-            const b = new ClipboardEvent("").clipboardData || new DataTransfer()
-            for (let i = 0, len = files.length; i < len; i++) b.items.add(files[i])
-            return b.files
-        }
+                        return;
+                    }
 
-        document.querySelectorAll('.delete-image').forEach(button => {
-            button.addEventListener('click', function() {
-                const image = this.dataset.image;
-                const imagesToDelete = imageToDeleteField.value ? imageToDeleteField.value.split(',') : [];
-                if (!imagesToDelete.includes(image)) {
-                    imagesToDelete.push(image);
+                    if (file.size > maxFileSize) {
+                        this.value = '';
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'File too large!',
+                            text: 'File ' + file.name + ' exceeds the maximum file size of 5 MB.',
+                            confirmButtonText: 'OK',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false
+                        });
+
+                        return;
+                    }
                 }
-                imageToDeleteField.value = imagesToDelete.join(',');
 
-                const container = this.closest('.image-container');
-                container.parentNode.removeChild(container);
+                newFiles.forEach(function(file) {
+                    const isDuplicate = selectedFiles.some(function(existingFile) {
+                        return existingFile.name === file.name &&
+                            existingFile.size === file.size &&
+                            existingFile.lastModified === file.lastModified;
+                    });
+
+                    if (!isDuplicate) {
+                        selectedFiles.push(file);
+                    }
+                });
+
+                updateFileInput();
+                renderNewImages();
+            });
+
+            document.querySelectorAll('.delete-image').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    const image = this.dataset.image;
+                    const imagesToDelete = imageToDeleteField.value ? imageToDeleteField.value.split(',').filter(Boolean) : [];
+
+                    if (!imagesToDelete.includes(image)) {
+                        imagesToDelete.push(image);
+                    }
+
+                    imageToDeleteField.value = imagesToDelete.join(',');
+
+                    const container = this.closest('.image-container');
+
+                    if (container) {
+                        container.remove();
+                    }
+                });
+            });
+
+            form.addEventListener('submit', function(e) {
+                const existingImages = Array.from(previewContainer.querySelectorAll('.image-container')).length;
+                const newImages = selectedFiles.length;
+
+                if (existingImages === 0 && newImages === 0) {
+                    e.preventDefault();
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Proof of Activity Required!',
+                        text: 'Please upload at least one image before saving.',
+                        confirmButtonText: 'OK',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false
+                    });
+
+                    return;
+                }
+
+                updateFileInput();
+
+                const now = new Date();
+                const hours = now.getHours().toString().padStart(2, '0');
+                const minutes = now.getMinutes().toString().padStart(2, '0');
+                const seconds = now.getSeconds().toString().padStart(2, '0');
+                const timeStamp = now.toISOString().split('T')[0] + ' ' + hours + ':' + minutes + ':' + seconds;
+
+                timeUploadField.value = timeStamp;
             });
         });
-    });
     </script>
 
     <script>

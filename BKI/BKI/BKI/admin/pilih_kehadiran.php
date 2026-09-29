@@ -14,22 +14,10 @@
         exit;
     }
 
-    if ($_SESSION['role'] !== 'User') {
-        header("Location: dashboard.php");
-        exit;
-    }
-
     $user_id = (int) $_SESSION['user_id'];
     $today = date('Y-m-d');
 
-    $check_attendance_query = "
-        SELECT id
-        FROM time
-        WHERE user_id = $user_id
-        AND tanggal = '$today'
-        LIMIT 1
-    ";
-
+    $check_attendance_query = "SELECT id FROM time WHERE user_id = $user_id AND tanggal = '$today' LIMIT 1";
     $check_attendance_result = mysqli_query($koneksi, $check_attendance_query);
 
     if ($check_attendance_result && mysqli_num_rows($check_attendance_result) > 0 && !isset($_SESSION['attendance_alert'])) {
@@ -52,7 +40,6 @@
     <title>BKI - Select Attendance</title>
     <link href="img/logo.png" rel="icon">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;1,400;1,500;1,600" rel="stylesheet">
-
     <link rel="stylesheet" type="text/css" href="../../../app-assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="../../../app-assets/css/bootstrap.css">
     <link rel="stylesheet" type="text/css" href="../../../app-assets/css/bootstrap-extended.css">
@@ -118,7 +105,7 @@
                     <?php elseif ($error === 'overlap'): ?>
                         <div class="alert alert-danger">The selected absence date range overlaps with an existing record.</div>
                     <?php elseif ($error === 'invalid_file'): ?>
-                        <div class="alert alert-danger">Evidence must be JPG, JPEG, PNG, or PDF.</div>
+                        <div class="alert alert-danger">Invalid evidence file format.</div>
                     <?php elseif ($error === 'file_too_large'): ?>
                         <div class="alert alert-danger">Evidence file is too large. Maximum allowed size is 3MB.</div>
                     <?php elseif ($error === 'upload_failed'): ?>
@@ -126,26 +113,32 @@
                     <?php endif; ?>
 
                     <form action="proses_kehadiran.php" method="POST" enctype="multipart/form-data" id="attendanceForm">
-                        <input type="hidden" name="latitude" id="latitude" value="<?php echo htmlspecialchars($_SESSION['login_latitude'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-                        <input type="hidden" name="longitude" id="longitude" value="<?php echo htmlspecialchars($_SESSION['login_longitude'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                        <input type="hidden" name="latitude" id="latitude" value="">
+                        <input type="hidden" name="longitude" id="longitude" value="">
 
                         <div class="row g-1 mb-2">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="option-card active w-100" id="card-masuk">
                                     <input type="radio" name="attendance_type" value="masuk" checked class="d-none">
                                     <div class="fw-bolder">Check In</div>
                                 </label>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="option-card w-100" id="card-sakit">
                                     <input type="radio" name="attendance_type" value="Sick" class="d-none">
                                     <div class="fw-bolder">Sick</div>
                                 </label>
                             </div>
-                            <div class="col-md-4">
-                                <label class="option-card w-100" id="card-cuti">
-                                    <input type="radio" name="attendance_type" value="Permission/Leave" class="d-none">
-                                    <div class="fw-bolder">Permission/Leave</div>
+                            <div class="col-md-3">
+                                <label class="option-card w-100" id="card-permission">
+                                    <input type="radio" name="attendance_type" value="Permission" class="d-none">
+                                    <div class="fw-bolder">Permission</div>
+                                </label>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="option-card w-100" id="card-leave">
+                                    <input type="radio" name="attendance_type" value="Leave" class="d-none">
+                                    <div class="fw-bolder">Leave</div>
                                 </label>
                             </div>
                         </div>
@@ -163,7 +156,7 @@
                             </div>
 
                             <div class="mb-1">
-                                <label for="evidence" class="form-label">Evidence (JPG/JPEG/PNG/PDF)<span class="text-danger">*</span></label>
+                                <label for="evidence" class="form-label" id="evidenceLabel">Evidence (JPG/JPEG/PNG/PDF)<span class="text-danger">*</span></label>
                                 <input type="file" name="evidence" id="evidence" class="form-control" accept=".jpg,.jpeg,.png,.pdf,application/pdf">
                                 <span class="note-danger">Maximum file size: 3MB.</span>
                             </div>
@@ -175,7 +168,7 @@
                         </div>
 
                         <div class="d-flex justify-content-end mt-2">
-                            <button type="submit" class="btn btn-primary">Submit</button>
+                            <button type="submit" class="btn btn-primary" id="submitAttendance">Submit</button>
                         </div>
                     </form>
                 </div>
@@ -184,10 +177,8 @@
     </div>
 
     <script src="../../../app-assets/vendors/js/vendors.min.js"></script>
-    
     <script src="../../../app-assets/js/core/app-menu.js"></script>
     <script src="../../../app-assets/js/core/app.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
@@ -195,7 +186,8 @@
             const cards = {
                 masuk: document.getElementById('card-masuk'),
                 sakit: document.getElementById('card-sakit'),
-                permission_leave: document.getElementById('card-cuti')
+                permission: document.getElementById('card-permission'),
+                leave: document.getElementById('card-leave')
             };
 
             Object.keys(cards).forEach(function(key) {
@@ -204,8 +196,10 @@
 
             if (value === 'Sick') {
                 cards.sakit.classList.add('active');
-            } else if (value === 'Permission/Leave') {
-                cards.permission_leave.classList.add('active');
+            } else if (value === 'Permission') {
+                cards.permission.classList.add('active');
+            } else if (value === 'Leave') {
+                cards.leave.classList.add('active');
             } else {
                 cards.masuk.classList.add('active');
             }
@@ -216,15 +210,23 @@
             const startDate = document.getElementById('start_date');
             const endDate = document.getElementById('end_date');
             const evidence = document.getElementById('evidence');
+            const evidenceLabel = document.getElementById('evidenceLabel');
             const description = document.getElementById('description');
-            const isTimeOff = value === 'Sick' || value === 'Permission/Leave';
+            const isTimeOff = value === 'Sick' || value === 'Permission' || value === 'Leave';
 
             section.style.display = isTimeOff ? 'block' : 'none';
-
             startDate.required = isTimeOff;
             endDate.required = isTimeOff;
             evidence.required = isTimeOff;
             description.required = false;
+
+            if (value === 'Permission') {
+                evidence.accept = '.jpg,.jpeg,.png,image/jpeg,image/png';
+                evidenceLabel.innerHTML = 'Evidence (JPG/JPEG/PNG)<span class="text-danger">*</span>';
+            } else {
+                evidence.accept = '.jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf';
+                evidenceLabel.innerHTML = 'Evidence (JPG/JPEG/PNG/PDF)<span class="text-danger">*</span>';
+            }
 
             if (!isTimeOff) {
                 startDate.value = '';
@@ -257,15 +259,82 @@
             });
         });
 
-        document.getElementById('attendanceForm').addEventListener('submit', function(e) {
-            const selectedInput = document.querySelector('input[name="attendance_type"]:checked');
-            const selected = selectedInput ? selectedInput.value : 'masuk';
+        const attendanceForm = document.getElementById('attendanceForm');
+        const latitudeInput = document.getElementById('latitude');
+        const longitudeInput = document.getElementById('longitude');
+        const submitAttendance = document.getElementById('submitAttendance');
 
-            if (selected === 'masuk') {
+        let locationAllowed = false;
+        let locationRequestInProgress = false;
+
+        function getLocation(callback) {
+            if (!navigator.geolocation) {
+                locationAllowed = false;
+                callback(false);
                 return;
             }
 
-            if (selected === 'Sick' || selected === 'Permission/Leave') {
+            locationRequestInProgress = true;
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    latitudeInput.value = position.coords.latitude;
+                    longitudeInput.value = position.coords.longitude;
+                    locationAllowed = true;
+                    locationRequestInProgress = false;
+                    callback(true);
+                },
+                function(error) {
+                    latitudeInput.value = '';
+                    longitudeInput.value = '';
+                    locationAllowed = false;
+                    locationRequestInProgress = false;
+                    callback(false);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        attendanceForm.addEventListener('submit', function(e) {
+            if (locationRequestInProgress) {
+                e.preventDefault();
+                return;
+            }
+
+            if (!latitudeInput.value || !longitudeInput.value || !locationAllowed) {
+                e.preventDefault();
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Location Required',
+                    text: 'Please enable your location permission before submitting attendance.',
+                    confirmButtonText: 'OK',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false
+                }).then(function() {
+                    getLocation(function(success) {
+                        if (success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Location detected',
+                                text: 'You can now submit your attendance.',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    });
+                });
+
+                return;
+            }
+
+            const selectedInput = document.querySelector('input[name="attendance_type"]:checked');
+            const selected = selectedInput ? selectedInput.value : 'masuk';
+
+            if (selected === 'Sick' || selected === 'Permission' || selected === 'Leave') {
                 const startValue = document.getElementById('start_date').value;
                 const endValue = document.getElementById('end_date').value;
                 const fileInput = document.getElementById('evidence');
@@ -285,7 +354,9 @@
 
                 const file = fileInput.files[0];
                 const maxSize = 3 * 1024 * 1024;
-                const allowedMimeTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+                const allowedMimeTypes = selected === 'Permission'
+                    ? ['image/jpeg', 'image/png']
+                    : ['image/jpeg', 'image/png', 'application/pdf'];
 
                 if (file.size > maxSize) {
                     e.preventDefault();
@@ -295,10 +366,14 @@
 
                 if (!allowedMimeTypes.includes(file.type)) {
                     e.preventDefault();
-                    alert('Evidence must be JPG, JPEG, PNG, or PDF.');
+                    alert(selected === 'Permission'
+                        ? 'Evidence must be JPG, JPEG, or PNG.'
+                        : 'Evidence must be JPG, JPEG, PNG, or PDF.');
                     return;
                 }
             }
+
+            submitAttendance.disabled = true;
         });
 
         toggleTimeOffFields('masuk');
@@ -308,10 +383,7 @@
         });
 
         if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function(position) {
-                document.getElementById('latitude').value = position.coords.latitude;
-                document.getElementById('longitude').value = position.coords.longitude;
-            });
+            getLocation(function() {});
         }
 
         if (window.history && window.history.pushState) {
@@ -359,6 +431,6 @@
     </script>
     <?php unset($_SESSION['attendance_alert']); ?>
     <?php endif; ?>
-    
+
 </body>
 </html>

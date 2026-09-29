@@ -58,28 +58,23 @@
         }
     }
 
-    function getImagePath($imageName) {
-        $imageName = trim($imageName);
+    $imageName = trim($image);
+    $imagePath = '';
 
-        if (empty($imageName)) {
-            return 'img/default.png';
+    $extensions = ['jpg', 'jpeg', 'png', 'webp', 'heic'];
+
+    foreach ($extensions as $ext) {
+        $filePath = __DIR__ . '/img/' . $imageName . '.' . $ext;
+
+        if (file_exists($filePath)) {
+            $imagePath = 'img/' . $imageName . '.' . $ext;
+            break;
         }
-
-        $extensions = ['jpg', 'jpeg', 'png', 'webp', 'heic'];
-
-        foreach ($extensions as $ext) {
-            $filePath = __DIR__ . '/img/' . $imageName . '.' . $ext;
-
-            if (file_exists($filePath)) {
-                return 'img/' . $imageName . '.' . $ext;
-            }
-        }
-
-        return 'img/default.png';
     }
 
-    // Foto user yang sedang diedit
-    $editImagePath = getImagePath($row['image']);
+    if ($imagePath === '') {
+        $imagePath = 'img/default.png';
+    }
 ?>
 
 <!DOCTYPE html>
@@ -224,7 +219,7 @@
                                                 <div class="mb-1">
                                                     <label for="image" class="form-label">Image</label>
                                                     <input type="file" class="form-control" name="image" id="image" onchange="previewImage(event)" />
-                                                    <img id="currentImage" src="<?= htmlspecialchars($editImagePath) ?>" alt="Current Image" height="100"/>
+                                                    <img id="currentImage" src="img/<?= $row['image'] ?>" alt="Current Image" height="100" />
                                                 </div>
                                             </div>
                                             <div class="col-6">
@@ -251,6 +246,42 @@
                                                         <option value="Information Technology" <?= $row['divisi'] === 'Information Technology' ? 'selected' : '' ?>>Information Technology</option>
                                                         <option value="Marketing" <?= $row['divisi'] === 'Marketing' ? 'selected' : '' ?>>Marketing</option>
                                                     </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="mb-1">
+                                                    <label for="basic_salary" class="form-label">Basic Salary</label>
+                                                    <input type="text" class="form-control money-input" id="basic_salary" name="basic_salary" placeholder="Basic Salary" value="<?=number_format((float)($row['basic_salary'] ?? 0), 0, ',', '.') ?>" inputmode="numeric" required />
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="mb-1">
+                                                    <label for="meal_allowance" class="form-label">Meal Allowance</label>
+                                                  <input type="text" class="form-control money-input" id="meal_allowance" name="meal_allowance" placeholder="Meal Allowance" value="<?=number_format((float)($row['meal_allowance'] ?? 0), 0, ',', '.') ?>" inputmode="numeric" required />
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="mb-1">
+                                                    <label for="transport_allowance" class="form-label">Transport Allowance</label>
+                                                   <input type="text" class="form-control money-input" id="transport_allowance" name="transport_allowance" placeholder="Transport Allowance" value="<?=number_format((float)($row['transport_allowance'] ?? 0), 0, ',', '.') ?>" inputmode="numeric" required />
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="mb-1">
+                                                    <label for="welfare_allowance" class="form-label">Welfare Allowance</label>
+                                                    <input type="text" class="form-control money-input" id="welfare_allowance" name="welfare_allowance" placeholder="Welfare Allowance" value="<?=number_format((float)($row['welfare_allowance'] ?? 0), 0, ',', '.') ?>" inputmode="numeric" required />
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="mb-1">
+                                                    <label for="other_allowance" class="form-label">Other Allowance</label>
+                                                    <input type="text" class="form-control money-input" id="other_allowance" name="other_allowance" placeholder="Other Allowance" value="<?=number_format((float)($row['other_allowance'] ?? 0), 0, ',', '.') ?>" inputmode="numeric" required />
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="mb-1">
+                                                    <label for="extra_fooding" class="form-label">Extra Fooding</label>
+                                                    <input type="text" class="form-control money-input" id="extra_fooding" name="extra_fooding" placeholder="Extra Fooding" value="<?=number_format((float)($row['extra_fooding'] ?? 0), 0, ',', '.') ?>" inputmode="numeric" required />
                                                 </div>
                                             </div>
                                             <div class="col-6">
@@ -425,6 +456,21 @@
         }
 
         setInterval(checkTime, 1000);
+
+        document.querySelectorAll('.money-input').forEach(function(input) {
+        input.addEventListener('focus', function() {
+            if (this.value === '0' || this.value === '0,00' || this.value === '0.00') this.value = '';
+        });
+
+        input.addEventListener('input', function() {
+            let value = this.value.replace(/[^\d]/g, '');
+            this.value = value ? Number(value).toLocaleString('id-ID') : '';
+        });
+
+        input.addEventListener('blur', function() {
+            if (!this.value) this.value = '0';
+        });
+    });
     </script>
 
 </body>

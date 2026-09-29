@@ -1,6 +1,5 @@
 .env
 .env.*
 *.log
-**/koneksi.php
 backup/
 cache/
