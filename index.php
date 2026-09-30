@@ -105,7 +105,7 @@
             <div class="col-lg-20">
                 <h2> BIRO KLASIFIKASI </h2> 
                   <h2>INDONESIA ( PERSERO )</h2>
-                <p><span class="typed" data-typed-items="BKI Workload and Individual Staff Efficiency, Jakarta Main Commercial Branch"></span><span class="typed-cursor typed-cursor--blink" aria-hidden="true"></span></p>
+                <p><span class="typed" data-typed-items="Jakarta Main Commercial Branch, BKI Workload and Individual Staff Efficiency"></span><span class="typed-cursor typed-cursor--blink" aria-hidden="true"></span></p>
               </div>
             </div>
         </div>
