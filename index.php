@@ -205,7 +205,7 @@
                             <h3>Address</h3>
                             <p class="fw-bold">PT Biro Klasifikasi Indonesia (Persero)</p>
                             <p>
-                                Jalan Yos Sudarso No.38 - 40, RT.04/RW.10
+                                Jalan Yos Sudarso No. 38 - 40, RT. 04/RW. 10
                                 Kelurahan Kebon Bawang, Kecamatan Tanjung Priok,
                                 Kota Jakarta Utara, DKI Jakarta, 14320.
                             </p>
