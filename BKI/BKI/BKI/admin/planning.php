@@ -386,7 +386,7 @@
                                     <label for="entriesSelect" class="ms-2">entries</label>
                                 </div>
                                 <div>
-                                    <input type="text" id="searchInput" placeholder="Search..." class="form-control search-input ms-auto" style="width: 165px;" onkeyup="searchTable()">
+                                    <input type="text" id="searchInput" placeholder="Search by Name, NUP, Date" class="form-control search-input ms-auto" style="width: 165px;" onkeydown="if (event.key === 'Enter') { event.preventDefault(); searchTable(); }">
                                     <form action="export_per_hari.php" method="POST" class="d-inline">
                                         <div class="input-group mt-1">
                                             <input type="date" name="export_date" id="export_date" class="form-control" required>
@@ -518,31 +518,28 @@
         })
 
         function searchTable() {
-            var input, filter, table, tr, td, i, j, txtValue;
-            input  = document.getElementById("searchInput");
-            filter = input.value.toLowerCase();
-            table  = document.querySelector(".table-hover-animation");
-            tr     = table.getElementsByTagName("tr");
-
-            for (i = 1; i < tr.length; i++) { 
-                tr[i].style.display = "none";
-                td = tr[i].getElementsByTagName("td");
-                for (j = 0; j < td.length; j++) {
-                    if (td[j]) {
-                        txtValue = td[j].textContent || td[j].innerText;
-                        if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                            tr[i].style.display = "";
-                            break;
-                        }
+            const filter = document.getElementById("searchInput").value.trim().toLocaleLowerCase();
+            const table = document.querySelector(".table-hover-animation");
+            const searchableColumns = Array.from(table.querySelectorAll("thead th"))
+                .reduce((columns, header, index) => {
+                    if (["name", "nup", "date"].includes(header.textContent.trim().toLocaleLowerCase())) {
+                        columns.push(index);
                     }
-                }
-            }
+                    return columns;
+                }, []);
+
+            table.querySelectorAll("tbody tr").forEach(row => {
+                row.dataset.searchMatch = !filter || searchableColumns.some(index =>
+                    row.cells[index] && row.cells[index].textContent.toLocaleLowerCase().includes(filter)
+                ) ? "true" : "false";
+            });
+            document.dispatchEvent(new Event("tableSearch"));
         }
 
         document.addEventListener('DOMContentLoaded', function() {
         const entriesSelect = document.getElementById('entriesSelect');
         const table = document.querySelector('.table-hover-animation');
-        const rows = table.getElementsByTagName('tr');
+        const dataRows = Array.from(table.querySelectorAll('tbody tr'));
         const info = document.getElementById('table-info');
         const paginationContainer = document.querySelector('.pagination-container .pagination');
 
@@ -551,18 +548,13 @@
 
         function updateTable() {
             const entries = parseInt(entriesSelect.value);
-            let count = 0;
-            let totalEntries = rows.length - 1;
+            const filteredRows = dataRows.filter(row => row.dataset.searchMatch !== 'false');
+            const totalEntries = filteredRows.length;
             const totalPages = Math.ceil(totalEntries / entries);
 
-            for (let i = 1; i < rows.length; i++) {
-                if (i > (currentPage - 1) * entries && i <= currentPage * entries) {
-                    rows[i].style.display = '';
-                    count++;
-                } else {
-                    rows[i].style.display = 'none';
-                }
-            }
+            dataRows.forEach(row => row.style.display = 'none');
+            filteredRows.slice((currentPage - 1) * entries, currentPage * entries)
+                .forEach(row => row.style.display = '');
             
             let start = totalEntries > 0 ? (currentPage - 1) * entries + 1 : 0;
             let end = Math.min(currentPage * entries, totalEntries);
@@ -757,6 +749,11 @@
             }
 
             entriesSelect.addEventListener('change', function() {
+                currentPage = 1;
+                updateTable();
+            });
+
+            document.addEventListener('tableSearch', function() {
                 currentPage = 1;
                 updateTable();
             });
