@@ -23,25 +23,35 @@
 
 
     if (
-        !isset($_POST['export_date']) ||
-        empty($_POST['export_date'])
+        !isset($_POST['start_date'], $_POST['end_date']) ||
+        !is_string($_POST['start_date']) ||
+        !is_string($_POST['end_date']) ||
+        $_POST['start_date'] === '' ||
+        $_POST['end_date'] === ''
     ) {
-        die("No date has been selected.");
+        die("A start date and end date must be selected.");
     }
 
-    $export_date = $_POST['export_date'];
+    $start_date = $_POST['start_date'];
+    $end_date = $_POST['end_date'];
 
-
-    $date = DateTime::createFromFormat(
+    $start = DateTime::createFromFormat(
         'Y-m-d',
-        $export_date
+        $start_date
+    );
+    $end = DateTime::createFromFormat(
+        'Y-m-d',
+        $end_date
     );
 
     if (
-        !$date ||
-        $date->format('Y-m-d') !== $export_date
+        !$start ||
+        $start->format('Y-m-d') !== $start_date ||
+        !$end ||
+        $end->format('Y-m-d') !== $end_date ||
+        $start_date > $end_date
     ) {
-        die("Invalid date format.");
+        die("Invalid date range.");
     }
 
 
@@ -59,10 +69,9 @@
     $sheet->setCellValue(
         'A1',
         'Planning Export (' .
-        date(
-            'd-m-Y',
-            strtotime($export_date)
-        ) .
+        date('d-m-Y', strtotime($start_date)) .
+        ' - ' .
+        date('d-m-Y', strtotime($end_date)) .
         ')'
     );
 
@@ -171,7 +180,7 @@
         JOIN users u
             ON p.user_id = u.id
 
-        WHERE p.tanggal = '$export_date'
+        WHERE p.tanggal BETWEEN '$start_date' AND '$end_date'
         AND u.status = 'Active'
     ";
 
@@ -683,7 +692,9 @@
 
     $filename =
         'planning_' .
-        $export_date .
+        $start_date .
+        '_to_' .
+        $end_date .
         '.xlsx';
 
 

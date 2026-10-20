@@ -387,13 +387,10 @@
                                 </div>
                                 <div>
                                     <input type="text" id="searchInput" placeholder="Search by Name, NUP, Date" class="form-control search-input ms-auto" style="width: 165px;" onkeydown="if (event.key === 'Enter') { event.preventDefault(); searchTable(); }">
-                                    <form action="export_per_hari.php" method="POST" class="d-inline">
-                                        <div class="input-group mt-1">
-                                            <input type="date" name="export_date" id="export_date" class="form-control" required>
-                                            <button type="submit" class="btn btn-outline-secondary" style="margin-right: 25px; border-radius: 5px;"><i data-feather="download"></i> Daily Export</button>
-                                            <a href="export.php" class="btn btn-outline-secondary" style="border-radius: 5px;"><i data-feather="download"></i> Export All</a>
-                                        </div>
-                                    </form>
+                                    <div class="d-flex gap-2 mt-1">
+                                        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#periodExportModal"><i data-feather="download"></i> Period Export</button>
+                                        <a href="export.php" class="btn btn-outline-secondary"><i data-feather="download"></i> Export All</a>
+                                    </div>
                                 </div>
                             </div>
                             <div class="table-responsive">
@@ -484,6 +481,33 @@
         </div>
     </div>
     <!-- END: Content -->
+
+    <div class="modal fade" id="periodExportModal" tabindex="-1" aria-labelledby="periodExportModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="periodExportModalLabel">Period Export</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="export_per_hari.php" method="POST" id="periodExportForm">
+                    <div class="modal-body">
+                        <div class="mb-2">
+                            <label for="export_start_date" class="form-label">Start Date</label>
+                            <input type="date" name="start_date" id="export_start_date" class="form-control" required>
+                        </div>
+                        <div class="mb-2">
+                            <label for="export_end_date" class="form-label">End Date</label>
+                            <input type="date" name="end_date" id="export_end_date" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary"><i data-feather="download"></i> Export</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <div class="sidenav-overlay"></div>
     <div class="drag-target"></div>
@@ -761,7 +785,25 @@
             updateTable();
         });
 
-        function confirmDelete(id) {
+            document.addEventListener('DOMContentLoaded', function() {
+                const periodExportForm = document.getElementById('periodExportForm');
+                const startDate = document.getElementById('export_start_date');
+                const endDate = document.getElementById('export_end_date');
+
+                periodExportForm.addEventListener('submit', function(event) {
+                    if (startDate.value && endDate.value && startDate.value > endDate.value) {
+                        event.preventDefault();
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Invalid Date Range',
+                            text: 'Start date cannot be greater than end date',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                });
+            });
+
+            function confirmDelete(id) {
             Swal.fire({
                 title: 'Are you sure?',
                 text: "You won't be able to revert this!",
