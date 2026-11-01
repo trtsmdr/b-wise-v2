@@ -299,7 +299,14 @@ function update_planning($data) {
     }
 
     $time_upload_activity_planning = !empty($time_upload_activity_planning) ? $time_upload_activity_planning : $existing_time_upload_activity_planning;
-    $time_upload_avident = isset($data['time_upload_avident']) ? htmlspecialchars($data['time_upload_avident']) : $existing_time_upload_avident;
+    if (array_key_exists('time_upload_avident', $data)) {
+        $time_upload_avident = $data['time_upload_avident'];
+        $time_upload_avident = $time_upload_avident === '' || $time_upload_avident === null
+            ? null
+            : htmlspecialchars($time_upload_avident);
+    } else {
+        $time_upload_avident = $existing_time_upload_avident;
+    }
 
     if (!empty($time_upload_activity_planning) && !empty($time_upload_avident)) {
         $start_time = new DateTime($time_upload_activity_planning);
