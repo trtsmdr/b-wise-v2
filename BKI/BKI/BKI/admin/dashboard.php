@@ -82,7 +82,9 @@
         SELECT u.divisi, COUNT(*) as total_completed 
         FROM planning p 
         JOIN users u ON p.user_id = u.id 
-        WHERE p.status = 'Completed' 
+        WHERE p.status = 'Completed'
+        AND u.divisi IS NOT NULL
+        AND TRIM(u.divisi) <> ''
         GROUP BY u.divisi 
         ORDER BY total_completed DESC
     ";
