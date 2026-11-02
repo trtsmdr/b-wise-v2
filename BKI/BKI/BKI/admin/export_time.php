@@ -23,7 +23,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 $role = $_SESSION['role'];
 $nama = $_SESSION['nama'];
 $type = $_GET['type'] ?? '';
-$divisions = ['Inspector', 'Admin', 'HSE', 'Finance', 'Marketing', 'Information Technology'];
+$divisions = ['Inspector', 'Admin', 'HSE', 'Finance', 'Marketing', 'Information Technology', '-'];
 
 if (!in_array($type, ['monthly', 'period', 'all'], true)) {
     die('Invalid export type.');
@@ -97,6 +97,11 @@ function add_division_header(Worksheet $sheet, int &$row, string $division, stri
     $style->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
 
     $row++;
+}
+
+function division_label(?string $division): string
+{
+    return $division ?: '-';
 }
 
 function finish_table(Worksheet $sheet, int $lastRow, string $lastColumn): void
@@ -259,7 +264,10 @@ function write_summary(Worksheet $sheet, string $title, string $period, array $r
     $rowNumber = 4;
 
     foreach ($divisions as $division) {
-        $divisionRows = array_filter($rows, static fn(array $row): bool => $row['divisi'] === $division);
+        $divisionRows = array_filter(
+            $rows,
+            static fn(array $row): bool => division_label($row['divisi']) === $division
+        );
 
         if (!$divisionRows) {
             continue;
@@ -269,7 +277,7 @@ function write_summary(Worksheet $sheet, string $title, string $period, array $r
 
         foreach ($divisionRows as $row) {
             $values = summary_values($row, $includeSalary);
-            $sheet->fromArray([$row['nama'], $row['divisi'], $row['nup'], ...$values], null, 'A' . $rowNumber);
+            $sheet->fromArray([$row['nama'], division_label($row['divisi']), $row['nup'], ...$values], null, 'A' . $rowNumber);
             $rowNumber++;
         }
     }
@@ -305,7 +313,7 @@ function write_time_sheet(Worksheet $sheet, string $title, string $period, array
     foreach ($divisions as $division) {
         $divisionRows = array_filter(
             $rows,
-            static fn(array $row): bool => $row['divisi'] === $division
+            static fn(array $row): bool => division_label($row['divisi']) === $division
         );
 
         if (!$divisionRows) {
@@ -330,7 +338,7 @@ function write_time_sheet(Worksheet $sheet, string $title, string $period, array
             $end = $row['end_date'] ? date('d-m-Y', strtotime($row['end_date'])) : '-';
             $dateRange = $start === $end ? $start : $start . ' to ' . $end;
 
-            $values = [$number++, $formattedDate, $row['nup'], $row['nama'], $row['divisi'],
+            $values = [$number++, $formattedDate, $row['nup'], $row['nama'], division_label($row['divisi']),
                 $timeOff ? ($row['absence_type'] ?: '-') : '-',
                 $timeOff ? $dateRange : '-',
                 $timeOff ? ($row['evidence'] ?: '-') : '-',

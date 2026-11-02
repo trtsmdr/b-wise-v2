@@ -23,8 +23,14 @@
 
     include("koneksi.php");
 
-    $selected_month = (int)date('m');
-    $selected_year = (int)date('Y');
+    date_default_timezone_set('Asia/Jakarta');
+
+    $currentDate = new DateTimeImmutable('now', new DateTimeZone('Asia/Jakarta'));
+    $periodDate = $currentDate->format('d') < 15
+        ? $currentDate->modify('-1 month')
+        : $currentDate;
+    $selected_month = (int)$periodDate->format('m');
+    $selected_year = (int)$periodDate->format('Y');
 
     if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['search'])) {
         $selected_month = (int)($_GET['month'] ?? date('m'));
