@@ -37,23 +37,7 @@
     exit;
     }
 
-    $imageName = trim($user['image']);
-    $imagePath = '';
-
-    $extensions = ['jpg', 'jpeg', 'png', 'webp', 'heic'];
-
-    foreach ($extensions as $ext) {
-        $filePath = __DIR__ . '/img/' . $imageName . '.' . $ext;
-
-        if (file_exists($filePath)) {
-            $imagePath = 'img/' . $imageName . '.' . $ext;
-            break;
-        }
-    }
-
-    if ($imagePath === '') {
-        $imagePath = 'img/default.png';
-    }
+    $imagePath = get_profile_image_path($user['image']);
 ?>
 
 <!DOCTYPE html>

@@ -9,6 +9,47 @@ if ($koneksi->connect_error) {
     die("Koneksi Gagal: " . $koneksi->connect_error);
 }
 
+function get_profile_image_path(?string $image): string
+{
+    $imageName = basename(trim((string)$image));
+    if ($imageName !== '' && is_file(__DIR__ . '/img/' . $imageName)) {
+        return 'img/' . rawurlencode($imageName);
+    }
+
+    $imageBase = pathinfo($imageName, PATHINFO_FILENAME);
+    foreach (['jpg', 'jpeg', 'png', 'webp', 'heic'] as $extension) {
+        $fileName = $imageBase . '.' . $extension;
+        if (is_file(__DIR__ . '/img/' . $fileName)) {
+            return 'img/' . rawurlencode($fileName);
+        }
+    }
+
+    return 'img/default.png';
+}
+
+function get_logged_in_profile_image_path(): string
+{
+    global $koneksi;
+
+    $image = $_SESSION['image'] ?? null;
+    $userId = (int)($_SESSION['user_id'] ?? 0);
+
+    if ($userId > 0) {
+        $stmt = $koneksi->prepare("SELECT image FROM users WHERE id = ?");
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $user = $result->fetch_assoc();
+        $stmt->close();
+
+        if ($user) {
+            $image = $user['image'];
+        }
+    }
+
+    return get_profile_image_path($image);
+}
+
 function feedback($data) {
     global $koneksi;
 

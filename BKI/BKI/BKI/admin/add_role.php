@@ -11,23 +11,7 @@
     $role  = $_SESSION['role'];
     $image = $_SESSION['image'];
 
-    $imageName = trim($image);
-    $imagePath = '';
-
-    $extensions = ['jpg', 'jpeg', 'png', 'webp', 'heic'];
-
-    foreach ($extensions as $ext) {
-        $filePath = __DIR__ . '/img/' . $imageName . '.' . $ext;
-
-        if (file_exists($filePath)) {
-            $imagePath = 'img/' . $imageName . '.' . $ext;
-            break;
-        }
-    }
-
-    if ($imagePath === '') {
-        $imagePath = 'img/default.png';
-    }
+    $imagePath = get_logged_in_profile_image_path();
 
     function is_user() {
         return $_SESSION['role'] === 'User';
