@@ -450,6 +450,38 @@
             font-size: 14px;
             width: 405px;
         }
+        .chart-filter-form {
+            width: 100%;
+            max-width: 430px;
+        }
+        .chart-filter-fields {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        .chart-filter-fields .form-group {
+            flex: 1 1 180px;
+            min-width: 0;
+        }
+        .chart-filter-submit {
+            flex: 0 0 auto;
+            height: 38px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        @media (max-width: 575.98px) {
+            .chart-filter-form {
+                max-width: 100%;
+            }
+            .chart-filter-fields .form-group {
+                flex-basis: 100%;
+            }
+            .chart-filter-submit {
+                width: 100%;
+            }
+        }
         .profile-navbar-img {
             width: 40px !important;
             height: 40px !important;
@@ -678,7 +710,7 @@
                             <h4 class="card-title mb-10">Personal Productivity</h4>
                             <span class="card-subtitle text-muted">Individual work productivity per day</span>
                             <div class="d-flex align-items-center mt-md-0 mt-1">
-                                <form method="POST" action="" onsubmit="return validateDateRange()" style="position: relative; align-items: center;">
+                                <form method="POST" action="" onsubmit="return validateDateRange()" class="chart-filter-form">
                                     <div class="form-group" style="width: 200px;">
                                         <label for="name-1" class="form-label"></label>
                                         <select class="form-control" id="name-1" name="name-1">
@@ -695,18 +727,18 @@
                                     
                                     <br>
 
-                                    <div style="display: flex;">
-                                        <div class="form-group" style="width: 200px;">
+                                    <div class="chart-filter-fields">
+                                        <div class="form-group">
                                             <label for="start_date">Start Date</label>
                                             <input type="date" class="form-control" id="start_date" name="start_date" value="<?php echo $search_start_date; ?>" required>
                                         </div>
 
-                                        <div class="form-group" style="width: 200px; margin-left: 10px;">
+                                        <div class="form-group">
                                             <label for="end_date">End Date</label>
                                             <input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo $search_end_date; ?>" required>
                                         </div>
 
-                                        <button type="submit" class="btn" style="border: none; background: transparent; cursor: pointer; margin-bottom: -28px; margin-left: -10px;">
+                                        <button type="submit" class="btn chart-filter-submit">
                                             <i class="fa fa-search icon-large"></i>
                                         </button>
                                     </div>
@@ -739,7 +771,7 @@
                             <h4 class="card-title mb-10">Personal Presence</h4>
                             <span class="card-subtitle text-muted">Individual attendance per month</span>
                             <div class="d-flex align-items-center mt-md-0 mt-1">
-                                <form method="POST" action="" onsubmit="return validateDateRange()" style="position: relative; align-items: center;">
+                                <form method="POST" action="" onsubmit="return validateDateRange()" class="chart-filter-form">
                                     <div class="form-group" style="width: 200px;">
                                         <label for="name-2" class="form-label"></label>
                                         <select class="form-control" id="name-2" name="name-2">
@@ -756,8 +788,8 @@
                                         
                                     <br>
                                         
-                                    <div style="display: flex;">
-                                        <div class="form-group" style="width: 200px;">
+                                    <div class="chart-filter-fields">
+                                        <div class="form-group">
                                             <label for="month">Month</label>
                                             <select class="form-control" id="month" name="month">
                                                 <?php
@@ -775,12 +807,12 @@
                                             </select>
                                         </div>
                                             
-                                        <div class="form-group" style="width: 200px; margin-left: 10px;">
+                                        <div class="form-group">
                                             <label for="year">Year</label>
                                             <input type="number" class="form-control" id="year" name="year" value="<?php echo $search_year; ?>" required>
                                         </div>
                                         
-                                        <button type="submit" class="btn" style="border: none; background: transparent; cursor: pointer; margin-bottom: -28px; margin-left: -10px;">
+                                        <button type="submit" class="btn chart-filter-submit">
                                             <i class="fa fa-search icon-large"></i>
                                         </button>
                                     </div>
@@ -814,19 +846,19 @@
                             <h4 class="card-title mb-10">Personal Productivity</h4>
                             <span class="card-subtitle text-muted">Individual work productivity per day</span>
                             <div class="d-flex align-items-center mt-md-0 mt-1">
-                                <form method="POST" action="" onsubmit="return validateDateRange()" style="position: relative; align-items: center; margin-top: 15px;">
-                                    <div style="display: flex;">
-                                        <div class="form-group" style="width: 200px;">
+                                <form method="POST" action="" onsubmit="return validateDateRange()" class="chart-filter-form">
+                                    <div class="chart-filter-fields">
+                                        <div class="form-group">
                                             <label for="start_date">Start Date</label>
                                             <input type="date" class="form-control" id="start_date" name="start_date" value="<?php echo $search_start_date; ?>" required>
                                         </div>
 
-                                        <div class="form-group" style="width: 200px; margin-left: 10px;">
+                                        <div class="form-group">
                                             <label for="end_date">End Date</label>
                                             <input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo $search_end_date; ?>" required>
                                         </div>
 
-                                        <button type="submit" class="btn" style="border: none; background: transparent; cursor: pointer; margin-bottom: -28px; margin-left: -10px;">
+                                        <button type="submit" class="btn chart-filter-submit">
                                             <i class="fa fa-search icon-large"></i>
                                         </button>
                                     </div>
@@ -859,12 +891,12 @@
                             <h4 class="card-title mb-10">Personal Presence</h4>
                             <span class="card-subtitle text-muted">Individual attendance per month</span>
                             <div class="d-flex align-items-center mt-md-0 mt-1">
-                                <form method="POST" action="" onsubmit="return validateDateRange()" style="position: relative; align-items: center;">
+                                <form method="POST" action="" class="chart-filter-form">
                                         
                                     <br>
                                         
-                                    <div style="display: flex;">
-                                        <div class="form-group" style="width: 200px;">
+                                    <div class="chart-filter-fields">
+                                        <div class="form-group">
                                             <label for="month">Month</label>
                                             <select class="form-control" id="month" name="month">
                                                 <?php
@@ -882,12 +914,12 @@
                                             </select>
                                         </div>
                                                 
-                                        <div class="form-group" style="width: 200px; margin-left: 10px;">
+                                        <div class="form-group">
                                             <label for="year">Year</label>
                                             <input type="number" class="form-control" id="year" name="year" value="<?php echo $search_year; ?>" required>
                                         </div>
                                         
-                                        <button type="submit" class="btn" style="border: none; background: transparent; cursor: pointer; margin-bottom: -28px; margin-left: -10px;">
+                                        <button type="submit" class="btn chart-filter-submit">
                                             <i class="fa fa-search icon-large"></i>
                                         </button>
                                     </div>

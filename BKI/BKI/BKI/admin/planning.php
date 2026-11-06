@@ -145,6 +145,7 @@
     <!-- BEGIN: Page CSS -->
     <link rel="stylesheet" type="text/css" href="../../../app-assets/css/core/menu/menu-types/vertical-menu.css">
     <!-- END: Page CSS -->
+    <link rel="stylesheet" type="text/css" href="../../../assets/css/style.css">
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/css/lightbox.min.css" rel="stylesheet">
@@ -236,7 +237,7 @@
         
             .pagination {
                 justify-content: center;
-                flex-wrap: nowrap;
+                flex-wrap: wrap;
                 margin-bottom: 0;
             }
         
@@ -568,7 +569,7 @@
             let end = Math.min(currentPage * entries, totalEntries);
             info.textContent = `Showing ${start} to ${end} of ${totalEntries} entries`;
             
-            updatePagination(totalPages);
+            updatePaginationCompact(totalPages);
         }
 
         function updatePagination(totalPages) {
@@ -754,6 +755,41 @@
                     '›',
                     currentPage === totalPages
                 );
+            }
+
+            function updatePaginationCompact(totalPages) {
+                paginationContainer.innerHTML = '';
+                if (totalPages <= 1) {
+                    return;
+                }
+
+                function createPage(page, text, disabled = false, active = false) {
+                    const li = document.createElement('li');
+                    li.className = 'page-item' + (active ? ' active' : '') + (disabled ? ' disabled' : '');
+                    const a = document.createElement('a');
+                    a.className = 'page-link';
+                    a.href = '#';
+                    a.textContent = text;
+                    if (!disabled) {
+                        a.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            currentPage = page;
+                            updateTable();
+                        });
+                    }
+                    li.appendChild(a);
+                    paginationContainer.appendChild(li);
+                }
+
+                createPage(1, 'First', currentPage === 1);
+                createPage(currentPage - 1, 'Back', currentPage === 1);
+                const startPage = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
+                const endPage = Math.min(totalPages, startPage + 4);
+                for (let page = startPage; page <= endPage; page++) {
+                    createPage(page, page, false, page === currentPage);
+                }
+                createPage(currentPage + 1, 'Next >', currentPage === totalPages);
+                createPage(totalPages, 'Last', currentPage === totalPages);
             }
 
             entriesSelect.addEventListener('change', function() {

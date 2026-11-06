@@ -9,3 +9,49 @@ NOTE:
 ------
 PLACE HERE YOUR OWN SCSS CODES AND IF NEEDED, OVERRIDE THE STYLES FROM THE OTHER STYLESHEETS.
 WE WILL RELEASE FUTURE UPDATES SO IN ORDER TO NOT OVERWRITE YOUR STYLES IT'S BETTER LIKE THIS.  */
+
+.pagination-container {
+	max-width: 100%;
+	overflow-x: auto;
+}
+
+.pagination {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-bottom: 20px;
+}
+
+.pagination .page-item .page-link {
+	min-width: 34px;
+	height: 34px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 10px;
+}
+
+@media (max-width: 767.98px) {
+	.card > .d-flex.justify-content-between.align-items-center.mt-2 {
+		flex-direction: column !important;
+		align-items: stretch !important;
+		gap: 15px;
+		padding: 15px !important;
+	}
+
+	.card > .d-flex.justify-content-between.align-items-center.mt-2 #table-info {
+		width: 100%;
+		text-align: left !important;
+	}
+
+	.pagination-container {
+		width: 100%;
+		overflow-x: auto;
+	}
+
+	.pagination {
+		justify-content: center;
+		flex-wrap: wrap;
+		margin-bottom: 0;
+	}
+}
