@@ -452,34 +452,41 @@
         }
         .chart-filter-form {
             width: 100%;
-            max-width: 430px;
+            max-width: 100%;
         }
         .chart-filter-fields {
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
             gap: 10px;
             align-items: flex-end;
         }
         .chart-filter-fields .form-group {
-            flex: 1 1 180px;
             min-width: 0;
+            margin-bottom: 5px;
         }
         .chart-filter-submit {
-            flex: 0 0 auto;
             height: 38px;
+            width: 38px;
             border: none;
             background: transparent;
             cursor: pointer;
+            padding: 0;
+            margin-bottom: 0;
         }
         @media (max-width: 575.98px) {
-            .chart-filter-form {
-                max-width: 100%;
-            }
-            .chart-filter-fields .form-group {
-                flex-basis: 100%;
+            .chart-filter-fields {
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
             }
             .chart-filter-submit {
-                width: 100%;
+                width: 38px;
+            }
+        }
+        @media (max-width: 400px) {
+            .chart-filter-fields {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .chart-filter-submit {
+                justify-self: start;
             }
         }
         .profile-navbar-img {
